@@ -36,7 +36,7 @@ function deploy {
   if test_app_running http://$subdomain.$stackato_hostname/$version/$name; then
     echo "Pushing app..."
     cd $dir
-    stackato push --no-prompt
+    stackato push --no-prompt --env BASE_HOSTNAME=$stackato_hostname
   else
     echo "Not pushing app version. Already running."
   fi

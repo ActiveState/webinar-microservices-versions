@@ -9,7 +9,7 @@ import (
 
 func name_v2_handler(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintln(w, "['Phil', 'John']")
+	fmt.Fprintln(w, "[\"Phil\", \"John\"]")
 }
 
 func crash_handler(w http.ResponseWriter, req *http.Request) {
