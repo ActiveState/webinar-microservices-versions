@@ -30,7 +30,7 @@ Extending this further, our /greeting endpoint will start to consume a 2nd provi
 
 ## Deployment flow
 
-Recommend deployment flow for both mutable and immutable application versions...
+Here is the recommended deployment flow. This is fully covered by immutable/util/deployment.sh
 
 1. Deploy v1 of /greeting
 
