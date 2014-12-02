@@ -16,11 +16,8 @@ function deploy {
   local name=$2
   local version=$3
 
-  local name_dir=$name
-  if [ "$type" = "mutable" ]; then
-    name_dir=$name-$version
-  fi
-  local dir=$rootdir/$type/$name_dir
+  local versioned_name=$name-$version
+  local dir=$rootdir/$type/$versioned_name
 
   echo
   echo "==> Deploying $1 $2"
@@ -31,7 +28,12 @@ function deploy {
     exit 1
   fi
 
-  if test_app_running http://$name.$stackato_hostname/$version/$name; then
+  local subdomain=$name
+  if [ "$type" = "immutable" ]; then
+    subdomain=$versioned_name
+  fi
+
+  if test_app_running http://$subdomain.$stackato_hostname/$version/$name; then
     echo "Pushing app..."
     cd $dir
     stackato push --no-prompt
