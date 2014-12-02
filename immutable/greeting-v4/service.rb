@@ -2,7 +2,7 @@
 require 'net/http'
 require 'json'
 
-get '/v3/greeting' do
+get '/v4/greeting' do
   (hi_word || 'Hello').strip + ' ' + (name || 'there').strip + '!' + "\n"
 end
 
