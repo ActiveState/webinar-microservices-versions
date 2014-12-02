@@ -1,9 +1,3 @@
-#!/usr/bin/env bash
-
-set -x
-
-basedir=`dirname $0`
-rootdir=`cd $basedir/.. && pwd`
 
 stackato_hostname=`stackato info | perl -ne 'm|Target:.*//api.(\S+)| && print $1'`
 
@@ -32,6 +26,11 @@ function deploy {
   echo "==> Deploying $1 $2"
   echo
 
+  if [ ! -d $dir ]; then
+    echo "No directory : $dir"
+    exit 1
+  fi
+
   if test_app_running http://$name.$stackato_hostname/$version/$name; then
     echo "Pushing app..."
     cd $dir
@@ -41,8 +40,4 @@ function deploy {
   fi
   echo
 }
-
-deploy mutable greeting v1
-deploy mutable name v1
-deploy mutable name v2
 
