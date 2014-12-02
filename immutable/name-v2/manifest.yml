@@ -1,0 +1,7 @@
+applications:
+- name: name-v2
+  mem: 128M
+  stackato:
+    env:
+      GOVERSION:
+        default: 1.2
