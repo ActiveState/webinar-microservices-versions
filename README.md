@@ -34,39 +34,39 @@ Here is the recommended deployment flow. This is fully covered by immutable/util
 
 1. Deploy v1 of /greeting
 
-This results in "Hello there!" being returned from /greeting
+   This results in "Hello there!" being returned from /greeting
 
 2. Deploy v1 of /name
 
-This still results in "Hello there!" being returned from /greeting
+   This still results in "Hello there!" being returned from /greeting
 
 3. Deploy v2 of /greeting
 
-v2 is aware of the /name v1 endpoint and will start consuming it. You will now see "Hello Phil!".
+   v2 is aware of the /name v1 endpoint and will start consuming it. You will now see "Hello Phil!".
 
-NOTE: The previous 2 steps can be done in either order, but best to deploy /name and test is first.
+   NOTE: The previous 2 steps can be done in either order, but best to deploy /name and test is first.
 
 4. Deploy v2 of /name
 
-This will result in /greeting returning "['Phil', 'John']" (only for /v2/name. /v1/name still returns "Phil"). Since /v2/greeting only knows about /v1/name, it will still return "Hello Phil!"
+   This will result in /greeting returning "['Phil', 'John']" (only for /v2/name. /v1/name still returns "Phil"). Since /v2/greeting only knows about /v1/name, it will still return "Hello Phil!"
 
 5. Deploy v3 of /greeting
 
-This is results in /v2/name aware /greeting. Now /greeting will return "Hello Phil and John!".
+   This is results in /v2/name aware /greeting. Now /greeting will return "Hello Phil and John!".
 
 6. Deploy v1 of /hi-word
 
-No change to /greeting, since it is unaware of this endpoint.
+   No change to /greeting, since it is unaware of this endpoint.
 
 7. Deploy v4 of /greeting
 
-/v4/greeting know about /hi-word and will start consuming it resulting in "Hola Phil and John!"
+   /v4/greeting know about /hi-word and will start consuming it resulting in "Hola Phil and John!"
 
 8. Rollback
 
-If you being to rollback through these steps, the system should fallback and degradate functionality gracefully.
+   If you being to rollback through these steps, the system should fallback and degradate functionality gracefully.
 
 9. Replicate failure
 
-From step 7 you should be able to kill the most recent version of any service or jump back to a previous version and they system should tolerate this and degrade functionality gracefully. Note, if you completely kill the root /greeting application then you will have no entrypoint in the system, but you should be able to jump back to any version. You will find that immutable infrastructure handles this scenario best, since killing v3 does not affect v2 or v1 instances, whereas with immutable they are all in the same application, which is backwards compatible.
+   From step 7 you should be able to kill the most recent version of any service or jump back to a previous version and they system should tolerate this and degrade functionality gracefully. Note, if you completely kill the root /greeting application then you will have no entrypoint in the system, but you should be able to jump back to any version. You will find that immutable infrastructure handles this scenario best, since killing v3 does not affect v2 or v1 instances, whereas with immutable they are all in the same application, which is backwards compatible.
 
