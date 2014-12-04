@@ -28,45 +28,123 @@ When we push v2 of /greeting, the greeting will change from "Hello <name>!" (or 
 
 Extending this further, our /greeting endpoint will start to consume a 2nd provider, if it is available. This 2nd provider provides the "Hi" for our greeting, but will return random variations of "Hi" (but not "Hi") with the fallback being "Hi". This new endpoint will be /hi-word
 
-## Deployment flow
+## Deployment
 
-Here is the recommended deployment flow. This is fully covered by immutable/util/deployment.sh
+Here is the recommended deployment...
+
+```
+# Clone the repo
+git clone git@github.com:ActiveState/webinar-microservices-versions.git
+cd webinar-microservices-versions
+cd immutable
+
+# Deploy all services in stopped state
+util/deployment.sh
+
+# Start the frontend application.
+# This is our entry-point into the system.
+stackato start frontend-v1
+
+# In a different terminal, start polling the frontend.
+# Should see "Service is down" initially.
+util/util/poll-frontend.sh
+```
+
+Now, let's start deploying our services. Actually, ```util/deployment.sh``` would have deployed them all already, and we'll just start them below, but if you want you could deploy them here as well.
+
+As mentioned above, you should be running poll-frontend.sh in a separate terminal which polls the frontend app. From this you should never see a 500 Internal Server Error returned by frontend, once it is deployed, as each step below should result in zero down-time and gracefully switch over to newer functionality as it is deployed.
 
 1. Deploy v1 of /greeting
 
-   This results in "Hello there!" being returned from /greeting
+   This is a Node.js app that just returns ```"Hello there!"``` from ```/v1/greeting```
+
+   ```
+   stackato start greeting-v1
+   ```
+
+   This results in ```"Hello there!"``` being returned from our frontend app.
 
 2. Deploy v1 of /name
 
-   This still results in "Hello there!" being returned from /greeting
+   This is a Go application that returns ```"Phil"``` from ```/v1/name```
+
+   ```
+   stackato start name-v1
+   ```
+
+   This still results in ```"Hello there!"``` being returned from our frontend app.
 
 3. Deploy v2 of /greeting
 
-   v2 is aware of the /name v1 endpoint and will start consuming it. You will now see "Hello Phil!".
+   This is a Ruby Sinatra app that just returns ```"Hello <name>!"``` from ```/v2/greeting```, where ```<name>``` is retrieved from ```/v1/name``` of the ```name-v1``` application. If ```name-v1``` is unavailable it will fall back to returning ```"Hello there!"```
 
-   NOTE: The previous 2 steps can be done in either order, but best to deploy /name and test is first.
+   ```
+   stackato start greeting-v2
+   ```
+
+   v2 is aware of the /name v1 endpoint and will start consuming it. You will now see ```"Hello Phil!"``` returned from our frontend app.
 
 4. Deploy v2 of /name
 
-   This will result in /greeting returning "['Phil', 'John']" (only for /v2/name. /v1/name still returns "Phil"). Since /v2/greeting only knows about /v1/name, it will still return "Hello Phil!"
+   This is a Go application that returns ```["Phil","John"]``` from ```/v2/name``` and the content-type header of ```application/json```.
+
+   ```
+   stackato start name-v2
+   ```
+
+   Since /v2/greeting only knows about /v1/name, our frontend app will still return "Hello Phil!"
 
 5. Deploy v3 of /greeting
 
-   This is results in /v2/name aware /greeting. Now /greeting will return "Hello Phil and John!".
+   Similar to v2, this is a Ruby Sinatra app that just returns ```"Hello <name>!"``` from ```/v3/greeting```, where ```<name>``` is retrieved from ```/v2/name``` of the ```name-v2``` application, if available. Since, ```/v2/name``` returns JSON, it will decode it and format it as ```"Phil and John"```. Other it will act the same as v2 of ```/greeting```, using ```/v1/name``` of the ```name-v1``` app. If ```name-v1``` is unavailable it will fall back to returning ```"Hello there!"```
+
+   ```
+   stackato start greeting-v3
+   ```
+
+   This is results in a greeting which is /v2/name aware and knows how to use the JSON returned from it. Now /greeting will return ```"Hello Phil and John!"```.
 
 6. Deploy v1 of /hi-word
 
-   No change to /greeting, since it is unaware of this endpoint.
+   This is Python app that returns a random world ('Bonjour', 'Hola', 'Hi', 'Hallo' or 'Ciao').
+
+   ```
+   stackato start hi-word-v1
+   ```
+
+   No change to the output of our frontend app, since nothing is unaware or consuming this new service.
 
 7. Deploy v4 of /greeting
 
-   /v4/greeting know about /hi-word and will start consuming it resulting in "Hola Phil and John!"
+   Similar to v3, this is Python app that consumes v2 or v1 of the /name service in the same way. It also consumes the hi-word app to replace the word "Hello" with another random greeting. If no hi-word service is available it will fall back to "Hello".
+
+   ```
+   stackato start greeting-v4
+   ```
+
+   Since the /v4/greeting knows about /v1/hi-word, it will start consuming it resulting in "Hola Phil and John!" or "Bonjour Phil and John!" or "Hi Phil and John!" or other random greetings other than "Hello".
 
 8. Rollback
 
-   If you being to rollback through these steps, the system should fallback and degradate functionality gracefully.
+   If you begin to roll back through these steps, the system should fallback and degradate functionality gracefully.
+
+   e.g.
+   ```
+   stackato stop greeting-v4
+   ```
 
 9. Replicate failure
 
-   From step 7 you should be able to kill the most recent version of any service or jump back to a previous version and they system should tolerate this and degrade functionality gracefully. Note, if you completely kill the root /greeting application then you will have no entrypoint in the system, but you should be able to jump back to any version. You will find that immutable infrastructure handles this scenario best, since killing v3 does not affect v2 or v1 instances, whereas with immutable they are all in the same application, which is backwards compatible.
+   name-v1 and name-v2 also have /crash handlers which if you visit that in your web browser or via curl, it will cause the process to crash. You then see the output of the frontend app change (degrade gracefully). A few seconds later Stackato will bring up a new version of that instance and the original output will resume.
 
+   You also can stop any app version with ```stackato stop <app-name>```, (e.g. ```stackato stop name-v2```), but Stackato will not restart it since you have told it explicitly to stop the app.
+
+   From step 7 you should be able to stop the most recent version of any service or jump back to a previous version and they microservices architecture in this example should tolerate this and degrade functionality gracefully. You will find that immutable infrastructure handles this scenario best, since stopping v3 does not affect v2 or v1 instances, whereas with mutable infrastructure they are all in the same application, which is backwards compatible.
+
+10. Deleting all apps
+
+   This will delete all the app deployed by ```util/deployment.sh```
+
+   ```
+   util/delete-all.sh
+   ```
