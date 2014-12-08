@@ -7,4 +7,5 @@ stackato delete --no-prompt name-v2
 stackato delete --no-prompt greeting-v2
 stackato delete --no-prompt name-v1
 stackato delete --no-prompt greeting-v1
+stackato delete --no-prompt frontend-v1
 
